@@ -1,5 +1,6 @@
 package com.massivecraft.factions.listeners;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
@@ -30,12 +32,12 @@ import com.massivecraft.factions.FPlayers;
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.P;
+import com.massivecraft.factions.integration.LocketteProFeatures;
 import com.massivecraft.factions.integration.SpoutFeatures;
 import com.massivecraft.factions.struct.Permission;
 import com.massivecraft.factions.struct.Relation;
 import com.massivecraft.factions.struct.Role;
 import com.massivecraft.factions.zcore.util.TextUtil;
-
 
 public class FactionsPlayerListener implements Listener
 {
@@ -50,7 +52,7 @@ public class FactionsPlayerListener implements Listener
 	{
 		// Make sure that all online players do have a fplayer.
 		final FPlayer me = FPlayers.i.get(event.getPlayer());
-		
+
 		// Update the lastLoginTime for this fplayer
 		me.setLastLoginTime(System.currentTimeMillis());
 
@@ -61,7 +63,7 @@ public class FactionsPlayerListener implements Listener
 
 		SpoutFeatures.updateAppearancesShortly(event.getPlayer());
 	}
-	
+
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onPlayerQuit(PlayerQuitEvent event)
 	{
@@ -79,7 +81,7 @@ public class FactionsPlayerListener implements Listener
 		}
 		SpoutFeatures.playerDisconnect(me);
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerMove(PlayerMoveEvent event)
 	{
@@ -88,28 +90,28 @@ public class FactionsPlayerListener implements Listener
 		// quick check to make sure player is moving between chunks; good performance boost
 		if
 		(
-			event.getFrom().getBlockX() >> 4 == event.getTo().getBlockX() >> 4
-			&&
-			event.getFrom().getBlockZ() >> 4 == event.getTo().getBlockZ() >> 4
-			&&
-			event.getFrom().getWorld() == event.getTo().getWorld()
-		)
+				event.getFrom().getBlockX() >> 4 == event.getTo().getBlockX() >> 4
+				&&
+				event.getFrom().getBlockZ() >> 4 == event.getTo().getBlockZ() >> 4
+				&&
+				event.getFrom().getWorld() == event.getTo().getWorld()
+				)
 			return;
 
 		Player player = event.getPlayer();
 		FPlayer me = FPlayers.i.get(player);
-		
+
 		// Did we change coord?
 		FLocation from = me.getLastStoodAt();
 		FLocation to = new FLocation(event.getTo());
-		
+
 		if (from.equals(to))
 		{
 			return;
 		}
-		
+
 		// Yes we did change coord (:
-		
+
 		me.setLastStoodAt(to);
 
 		// Did we change "host"(faction)?
@@ -138,20 +140,20 @@ public class FactionsPlayerListener implements Listener
 				me.sendFactionHereMessage();
 				if
 				(
-					Conf.ownedAreasEnabled
-					&&
-					Conf.ownedMessageOnBorder
-					&&
-					(
-						!spoutClient
-						||
-						!Conf.spoutTerritoryOwnersShow
-					)
-					&&
-					myFaction == factionTo
-					&&
-					!ownersTo.isEmpty()
-				)
+						Conf.ownedAreasEnabled
+						&&
+						Conf.ownedMessageOnBorder
+						&&
+						(
+								!spoutClient
+								||
+								!Conf.spoutTerritoryOwnersShow
+								)
+						&&
+						myFaction == factionTo
+						&&
+						!ownersTo.isEmpty()
+						)
 				{
 					me.sendMessage(Conf.ownedLandMessage+ownersTo);
 				}
@@ -162,14 +164,14 @@ public class FactionsPlayerListener implements Listener
 			}
 			else if
 			(
-				Conf.ownedAreasEnabled
-				&&
-				Conf.ownedMessageInsideTerritory
-				&&
-				factionFrom == factionTo
-				&&
-				myFaction == factionTo
-			)
+					Conf.ownedAreasEnabled
+					&&
+					Conf.ownedMessageInsideTerritory
+					&&
+					factionFrom == factionTo
+					&&
+					myFaction == factionTo
+					)
 			{
 				String ownersFrom = myFaction.getOwnerListString(from);
 				if (Conf.ownedMessageByChunk || !ownersFrom.equals(ownersTo))
@@ -181,11 +183,27 @@ public class FactionsPlayerListener implements Listener
 				}
 			}
 		}
-		
+
 		if (me.getAutoClaimFor() != null)
 		{
 			me.attemptClaim(me.getAutoClaimFor(), event.getTo(), true);
 		}
+		
+		if (me.getAutoUnClaimEnabled())
+		{
+			me.getPlayer().performCommand("f unclaim");
+		}
+		
+		if (me.getAutoOwnerEnabled())
+		{
+			me.attemptOwner(new FLocation(me), false);
+		}
+		
+		if (me.getAutoUnOwnerEnabled())
+		{
+			me.attemptUnOwner(new FLocation(me), false);
+		}
+		
 		else if (me.isAutoSafeClaimEnabled())
 		{
 			if ( ! Permission.MANAGE_SAFE_ZONE.has(player))
@@ -229,6 +247,14 @@ public class FactionsPlayerListener implements Listener
 		Player player = event.getPlayer();
 
 		if (block == null) return;  // clicked in air, apparently
+
+		if (LocketteProFeatures.getEnabled()) {
+			if (LocketteProFeatures.canPlayerInteractFactions(player, block)) {
+				if (block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST || block.getType() == Material.FURNACE) {
+					return;
+				}
+			}
+		}
 
 		if ( ! canPlayerUseBlock(player, block, false))
 		{
@@ -310,7 +336,7 @@ public class FactionsPlayerListener implements Listener
 		{
 			if (!Conf.wildernessDenyUseage || Conf.worldsNoWildernessProtection.contains(location.getWorld().getName()))
 				return true; // This is not faction territory. Use whatever you like here.
-			
+
 			if (!justCheck)
 				me.msg("<b>You can't use <h>%s<b> in the wilderness.", TextUtil.getMaterialName(material));
 
@@ -406,7 +432,7 @@ public class FactionsPlayerListener implements Listener
 		{
 			if (!justCheck)
 				me.msg("<b>You can't use <h>%s<b> in this territory, it is owned by: %s<b>.", TextUtil.getMaterialName(material), otherFaction.getOwnerListString(loc));
-			
+
 			return false;
 		}
 
@@ -423,18 +449,18 @@ public class FactionsPlayerListener implements Listener
 		Location home = me.getFaction().getHome();
 		if
 		(
-			Conf.homesEnabled
-			&&
-			Conf.homesTeleportToOnDeath
-			&&
-			home != null
-			&&
-			(
-				Conf.homesRespawnFromNoPowerLossWorlds
-				||
-				! Conf.worldsNoPowerLoss.contains(event.getPlayer().getWorld().getName())
-			)
-		)
+				Conf.homesEnabled
+				&&
+				Conf.homesTeleportToOnDeath
+				&&
+				home != null
+				&&
+				(
+						Conf.homesRespawnFromNoPowerLossWorlds
+						||
+						! Conf.worldsNoPowerLoss.contains(event.getPlayer().getWorld().getName())
+						)
+				)
 		{
 			event.setRespawnLocation(home);
 		}
@@ -447,7 +473,7 @@ public class FactionsPlayerListener implements Listener
 	{
 		if (event.isCancelled()) return;
 
-		Block block = event.getBlockClicked();
+		Block block = event.getBlockClicked().getRelative(event.getBlockFace());
 		Player player = event.getPlayer();
 
 		if ( ! playerCanUseItemHere(player, block.getLocation(), event.getBucket(), false))
@@ -471,100 +497,64 @@ public class FactionsPlayerListener implements Listener
 		}
 	}
 
-	public static boolean preventCommand(String fullCmd, Player player)
+	@EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+	public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
 	{
-		if ((Conf.territoryNeutralDenyCommands.isEmpty() && Conf.territoryEnemyDenyCommands.isEmpty() && Conf.permanentFactionMemberDenyCommands.isEmpty()))
-			return false;
-
-		fullCmd = fullCmd.toLowerCase();
-
+		// Get the player
+		Player player = event.getPlayer();
 		FPlayer me = FPlayers.i.get(player);
 
-		String shortCmd;  // command without the slash at the beginning
-		if (fullCmd.startsWith("/"))
-			shortCmd = fullCmd.substring(1);
-		else
-		{
-			shortCmd = fullCmd;
-			fullCmd = "/" + fullCmd;
-		}
+		// With adminmode no commands are denied. 
+		if (me.isAdminBypassing()) return;
 
-		if
-		(
-			me.hasFaction()
-			&&
-			! me.isAdminBypassing()
-			&&
-			! Conf.permanentFactionMemberDenyCommands.isEmpty()
-			&&
-			me.getFaction().isPermanent()
-			&&
-			isCommandInList(fullCmd, shortCmd, Conf.permanentFactionMemberDenyCommands.iterator())
-		)
+		// The full command is converted to lowercase and does include the slash in the front
+		String fullCmd = event.getMessage().toLowerCase();
+
+		if (me.hasFaction() && me.getFaction().isPermanent() && isCommandInList(fullCmd, Conf.permanentFactionMemberDenyCommands))
 		{
 			me.msg("<b>You can't use the command \""+fullCmd+"\" because you are in a permanent faction.");
-			return true;
-		}
-
-		if (!me.isInOthersTerritory())
-		{
-			return false;
+			event.setCancelled(true);
+			return;
 		}
 
 		Relation rel = me.getRelationToLocation();
 		if (rel.isAtLeast(Relation.ALLY))
 		{
-			return false;
+			return;
 		}
 
-		if
-		(
-			rel.isNeutral()
-			&&
-			! Conf.territoryNeutralDenyCommands.isEmpty()
-			&&
-			! me.isAdminBypassing()
-			&&
-			isCommandInList(fullCmd, shortCmd, Conf.territoryNeutralDenyCommands.iterator())
-		)
+		if (rel.isNeutral() && isCommandInList(fullCmd, Conf.territoryNeutralDenyCommands))
 		{
 			me.msg("<b>You can't use the command \""+fullCmd+"\" in neutral territory.");
-			return true;
+			event.setCancelled(true);
+			return;
 		}
 
-		if
-		(
-			rel.isEnemy()
-			&&
-			! Conf.territoryEnemyDenyCommands.isEmpty()
-			&&
-			! me.isAdminBypassing()
-			&&
-			isCommandInList(fullCmd, shortCmd, Conf.territoryEnemyDenyCommands.iterator())
-		)
+		if (rel.isEnemy() && isCommandInList(fullCmd, Conf.territoryEnemyDenyCommands))
 		{
 			me.msg("<b>You can't use the command \""+fullCmd+"\" in enemy territory.");
-			return true;
+			event.setCancelled(true);
+			return;
 		}
 
-		return false;
+		return;
 	}
 
-	private static boolean isCommandInList(String fullCmd, String shortCmd, Iterator<String> iter)
+	private static boolean isCommandInList(String fullCmd, Collection<String> strings)
 	{
-		String cmdCheck;
+		String shortCmd = fullCmd.substring(1);
+		Iterator<String> iter = strings.iterator();
 		while (iter.hasNext())
 		{
-			cmdCheck = iter.next();
+			String cmdCheck = iter.next();
 			if (cmdCheck == null)
 			{
 				iter.remove();
 				continue;
 			}
-
 			cmdCheck = cmdCheck.toLowerCase();
-			if (fullCmd.startsWith(cmdCheck) || shortCmd.startsWith(cmdCheck))
-				return true;
+			if (fullCmd.startsWith(cmdCheck)) return true;
+			if (shortCmd.startsWith(cmdCheck)) return true;
 		}
 		return false;
 	}

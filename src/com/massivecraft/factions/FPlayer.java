@@ -6,6 +6,7 @@ import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Player;
 
 import com.massivecraft.factions.event.FPlayerLeaveEvent;
@@ -39,7 +40,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 {	
 	//private transient String playerName;
 	private transient FLocation lastStoodAt = new FLocation(); // Where did this player stand the last time we checked?
-	
+
 	// FIELD: factionId
 	private String factionId;
 	public Faction getFaction() { if(this.factionId == null) {return null;} return Factions.i.get(this.factionId); }
@@ -53,15 +54,15 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		this.factionId = faction.getId();
 		SpoutFeatures.updateAppearances(this.getPlayer());
 	}
-	
+
 	// FIELD: role
 	private Role role;
 	public Role getRole() { return this.role; }
 	public void setRole(Role role) { this.role = role; SpoutFeatures.updateAppearances(this.getPlayer()); }
-	
+
 	// FIELD: title
 	private String title;
-	
+
 	// FIELD: power
 	private double power;
 
@@ -73,19 +74,25 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 
 	// FIELD: lastPowerUpdateTime
 	private long lastPowerUpdateTime;
-	
+
 	// FIELD: lastLoginTime
 	private long lastLoginTime;
-	
+
 	// FIELD: mapAutoUpdating
 	private transient boolean mapAutoUpdating;
-	
+
 	// FIELD: autoClaimEnabled
 	private transient Faction autoClaimFor;
+
+	private transient boolean autoUnClaimEnabled;
+	private transient boolean autoOwnerEnabled;
+	private transient boolean autoUnOwnerEnabled;
+
 	public Faction getAutoClaimFor()
 	{
 		return autoClaimFor;
 	}
+
 	public void setAutoClaimFor(Faction faction)
 	{
 		this.autoClaimFor = faction;
@@ -94,9 +101,68 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			// TODO: merge these into same autoclaim
 			this.autoSafeZoneEnabled = false;
 			this.autoWarZoneEnabled = false;
+			this.autoUnClaimEnabled = false;
+			this.autoOwnerEnabled = false;
+			this.autoUnOwnerEnabled = false;
 		}
 	}
+
+	public boolean getAutoOwnerEnabled()
+	{
+		return autoOwnerEnabled;
+	}
 	
+	public boolean getAutoUnOwnerEnabled()
+	{
+		return autoUnOwnerEnabled;
+	}
+
+	public void setAutoOwnerEnabled(boolean enabled)
+	{
+		autoOwnerEnabled = enabled;
+		if (enabled)
+		{
+			this.autoClaimFor = null;
+			this.autoSafeZoneEnabled = false;
+			this.autoWarZoneEnabled = false;
+			this.autoUnClaimEnabled = false;
+			this.autoUnOwnerEnabled = false;
+		}
+
+	}
+	
+	public void setAutoUnOwnerEnabled(boolean enabled)
+	{
+		autoUnOwnerEnabled = enabled;
+		if (enabled)
+		{
+			this.autoClaimFor = null;
+			this.autoSafeZoneEnabled = false;
+			this.autoWarZoneEnabled = false;
+			this.autoOwnerEnabled = false;
+			this.autoUnClaimEnabled = false;
+		}
+
+	}
+
+	public boolean getAutoUnClaimEnabled()
+	{
+		return autoUnClaimEnabled;
+	}
+
+	public void setAutoUnClaimEnabled(boolean enabled)
+	{
+		autoUnClaimEnabled = enabled;
+		if (enabled)
+		{
+			this.autoOwnerEnabled = false;
+			this.autoClaimFor = null;
+			this.autoSafeZoneEnabled = false;
+			this.autoWarZoneEnabled = false;
+			this.autoUnOwnerEnabled = false;
+		}
+	}
+
 	// FIELD: autoSafeZoneEnabled
 	private transient boolean autoSafeZoneEnabled;
 	public boolean isAutoSafeClaimEnabled() { return autoSafeZoneEnabled; }
@@ -107,6 +173,9 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		{
 			this.autoClaimFor = null;
 			this.autoWarZoneEnabled = false;
+			this.autoUnClaimEnabled = false;
+			this.autoOwnerEnabled = false;
+			this.autoUnOwnerEnabled = false;
 		}
 	}
 
@@ -120,19 +189,22 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		{
 			this.autoClaimFor = null;
 			this.autoSafeZoneEnabled = false;
+			this.autoUnClaimEnabled = false;
+			this.autoOwnerEnabled = false;
+			this.autoUnOwnerEnabled = false;
 		}
 	}
-	
+
 	private transient boolean isAdminBypassing = false;
 	public boolean isAdminBypassing() { return this.isAdminBypassing; }
 	public void setIsAdminBypassing(boolean val) { this.isAdminBypassing = val; }
-	
+
 	// FIELD: loginPvpDisabled
 	private transient boolean loginPvpDisabled;
-	
+
 	// FIELD: deleteMe
 	private transient boolean deleteMe;
-	
+
 	// FIELD: chatMode
 	private ChatMode chatMode;
 	public void setChatMode(ChatMode chatMode) { this.chatMode = chatMode; }
@@ -152,11 +224,11 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 
 	// FIELD: account
 	public String getAccountId() { return this.getId(); }
-	
+
 	// -------------------------------------------- //
 	// Construct
 	// -------------------------------------------- //
-	
+
 	// GSON need this noarg constructor.
 	public FPlayer()
 	{
@@ -166,6 +238,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		this.lastLoginTime = System.currentTimeMillis();
 		this.mapAutoUpdating = false;
 		this.autoClaimFor = null;
+		this.autoUnClaimEnabled = false;
 		this.autoSafeZoneEnabled = false;
 		this.autoWarZoneEnabled = false;
 		this.loginPvpDisabled = (Conf.noPVPDamageToOthersForXSecondsAfterLogin > 0) ? true : false;
@@ -177,7 +250,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			this.factionId = Conf.newPlayerStartingFactionID;
 		}
 	}
-	
+
 	public final void resetFactionData(boolean doSpoutUpdate)
 	{
 		// clean up any territory ownership in old faction, if there is one
@@ -190,7 +263,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 				currentFaction.clearClaimOwnership(this.getId());
 			}
 		}
-		
+
 		this.factionId = "0"; // The default neutral faction
 		this.chatMode = ChatMode.PUBLIC;
 		this.role = Role.NORMAL;
@@ -202,25 +275,25 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			SpoutFeatures.updateAppearances(this.getPlayer());
 		}
 	}
-	
+
 	public void resetFactionData()
 	{
 		this.resetFactionData(true);
 	}
-	
+
 	// -------------------------------------------- //
 	// Getters And Setters
 	// -------------------------------------------- //
-	
-	
-	
-	
+
+
+
+
 	public long getLastLoginTime()
 	{
 		return lastLoginTime;
 	}
 
-	
+
 
 	public void setLastLoginTime(long lastLoginTime)
 	{
@@ -256,12 +329,12 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		}
 		return true;
 	}
-	
+
 	public FLocation getLastStoodAt()
 	{
 		return this.lastStoodAt;
 	}
-	
+
 	public void setLastStoodAt(FLocation flocation)
 	{
 		this.lastStoodAt = flocation;
@@ -271,13 +344,13 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		deleteMe = delete;
 	}
-	
+
 	//----------------------------------------------//
 	// Title, Name, Faction Tag and Chat
 	//----------------------------------------------//
-	
+
 	// Base:
-	
+
 	public String getTitle()
 	{
 		return this.title;
@@ -287,12 +360,12 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		this.title = title;
 	}
-	
+
 	public String getName()
 	{
 		return this.getId(); // TODO: ... display name or remove completeley
 	}
-	
+
 	public String getTag()
 	{
 		if ( ! this.hasFaction())
@@ -301,9 +374,9 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		}
 		return this.getFaction().getTag();
 	}
-	
+
 	// Base concatenations:
-	
+
 	public String getNameAndSomething(String something)
 	{
 		String ret = this.role.getPrefix();
@@ -313,20 +386,20 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		ret += this.getName();
 		return ret;
 	}
-	
+
 	public String getNameAndTitle()
 	{
 		return this.getNameAndSomething(this.getTitle());
 	}
-	
+
 	public String getNameAndTag()
 	{
 		return this.getNameAndSomething(this.getTag());
 	}
-	
+
 	// Colored concatenations:
 	// These are used in information messages
-	
+
 	public String getNameAndTitle(Faction faction)
 	{
 		return this.getColorTo(faction)+this.getNameAndTitle();
@@ -335,7 +408,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		return this.getColorTo(fplayer)+this.getNameAndTitle();
 	}
-	
+
 	/*public String getNameAndTag(Faction faction)
 	{
 		return this.getRelationColor(faction)+this.getNameAndTag();
@@ -344,19 +417,19 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		return this.getRelationColor(fplayer)+this.getNameAndTag();
 	}*/
-	
+
 	// TODO: REmovded for refactoring.
-	
+
 	/*public String getNameAndRelevant(Faction faction)
 	{
 		// Which relation?
 		Relation rel = this.getRelationTo(faction);
-		
+
 		// For member we show title
 		if (rel == Relation.MEMBER) {
 			return rel.getColor() + this.getNameAndTitle();
 		}
-		
+
 		// For non members we show tag
 		return rel.getColor() + this.getNameAndTag();
 	}
@@ -364,92 +437,92 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		return getNameAndRelevant(fplayer.getFaction());
 	}*/
-	
+
 	// Chat Tag: 
 	// These are injected into the format of global chat messages.
-	
+
 	public String getChatTag()
 	{
 		if ( ! this.hasFaction()) {
 			return "";
 		}
-		
+
 		return String.format(Conf.chatTagFormat, this.role.getPrefix()+this.getTag());
 	}
-	
+
 	// Colored Chat Tag
 	public String getChatTag(Faction faction)
 	{
 		if ( ! this.hasFaction()) {
 			return "";
 		}
-		
+
 		return this.getRelationTo(faction).getColor()+getChatTag();
 	}
-	
+
 	public String getChatTag(FPlayer fplayer)
 	{
 		if ( ! this.hasFaction())
 		{
 			return "";
 		}
-		
+
 		return this.getColorTo(fplayer)+getChatTag();
 	}
-	
+
 	// -------------------------------
 	// Relation and relation colors
 	// -------------------------------
-	
+
 	@Override
 	public String describeTo(RelationParticipator that, boolean ucfirst)
 	{
 		return RelationUtil.describeThatToMe(this, that, ucfirst);
 	}
-	
+
 	@Override
 	public String describeTo(RelationParticipator that)
 	{
 		return RelationUtil.describeThatToMe(this, that);
 	}
-	
+
 	@Override
 	public Relation getRelationTo(RelationParticipator rp)
 	{
 		return RelationUtil.getRelationTo(this, rp);
 	}
-	
+
 	@Override
 	public Relation getRelationTo(RelationParticipator rp, boolean ignorePeaceful)
 	{
 		return RelationUtil.getRelationTo(this, rp, ignorePeaceful);
 	}
-	
+
 	public Relation getRelationToLocation()
 	{
 		return Board.getFactionAt(new FLocation(this)).getRelationTo(this);
 	}
-	
+
 	@Override
 	public ChatColor getColorTo(RelationParticipator rp)
 	{
 		return RelationUtil.getColorOfThatToMe(this, rp);
 	}
-	
+
 	//----------------------------------------------//
 	// Health
 	//----------------------------------------------//
 	public void heal(int amnt)
 	{
-		Player player = this.getPlayer();
+		Damageable player = (Damageable) this.getPlayer();
 		if (player == null)
 		{
 			return;
 		}
 		player.setHealth(player.getHealth() + amnt);
 	}
-	
-	
+
+
 	//----------------------------------------------//
 	// Power
 	//----------------------------------------------//
@@ -458,7 +531,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		this.updatePower();
 		return this.power;
 	}
-	
+
 	protected void alterPower(double delta)
 	{
 		this.power += delta;
@@ -467,32 +540,32 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		else if (this.power < this.getPowerMin())
 			this.power = this.getPowerMin();
 	}
-	
+
 	public double getPowerMax()
 	{
 		return Conf.powerPlayerMax + this.powerBoost;
 	}
-	
+
 	public double getPowerMin()
 	{
 		return Conf.powerPlayerMin + this.powerBoost;
 	}
-	
+
 	public int getPowerRounded()
 	{
 		return (int) Math.round(this.getPower());
 	}
-	
+
 	public int getPowerMaxRounded()
 	{
 		return (int) Math.round(this.getPowerMax());
 	}
-	
+
 	public int getPowerMinRounded()
 	{
 		return (int) Math.round(this.getPowerMin());
 	}
-	
+
 	protected void updatePower()
 	{
 		if (this.isOffline())
@@ -530,13 +603,13 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			this.alterPower(-loss);
 		}
 	}
-	
+
 	public void onDeath()
 	{
 		this.updatePower();
 		this.alterPower(-Conf.powerPerDeath);
 	}
-	
+
 	//----------------------------------------------//
 	// Territory
 	//----------------------------------------------//
@@ -544,7 +617,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 	{
 		return Board.getFactionAt(new FLocation(this)) == this.getFaction();
 	}
-	
+
 	public boolean isInOthersTerritory()
 	{
 		Faction factionHere = Board.getFactionAt(new FLocation(this));
@@ -580,11 +653,11 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		}
 		this.sendMessage(msg);
 	}
-	
+
 	// -------------------------------
 	// Actions
 	// -------------------------------
-	
+
 	public void leave(boolean makePay)
 	{
 		Faction myFaction = this.getFaction();
@@ -597,7 +670,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		}
 
 		boolean perm = myFaction.isPermanent();
-		
+
 		if (!perm && this.getRole() == Role.ADMIN && myFaction.getFPlayers().size() > 1)
 		{
 			msg("<b>You must give the admin role to someone else first.");
@@ -627,7 +700,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			if (Econ.shouldBeUsed())
 				Econ.transferMoney(this, myFaction, this, Econ.getBalance(myFaction.getAccountId()));
 		}
-		
+
 		if (myFaction.isNormal())
 		{
 			for (FPlayer fplayer : myFaction.getFPlayersWhereOnline(true))
@@ -638,7 +711,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			if (Conf.logFactionLeave)
 				P.p.log(this.getName()+" left the faction: "+myFaction.getTag());
 		}
-		
+
 		this.resetFactionData();
 
 		if (myFaction.isNormal() && !perm && myFaction.getFPlayers().isEmpty())
@@ -654,18 +727,18 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 				P.p.log("The faction "+myFaction.getTag()+" ("+myFaction.getId()+") was disbanded due to the last player ("+this.getName()+") leaving.");
 		}
 	}
-	
+
 	public boolean canClaimForFaction(Faction forFaction)
 	{
 		if (forFaction.isNone()) return false;
 
 		if
 		(
-			   this.isAdminBypassing()
-			|| (forFaction == this.getFaction() && this.getRole().isAtLeast(Role.MODERATOR))
-			|| (forFaction.isSafeZone() && Permission.MANAGE_SAFE_ZONE.has(getPlayer()))
-			|| (forFaction.isWarZone() && Permission.MANAGE_WAR_ZONE.has(getPlayer()))
-		)
+				this.isAdminBypassing()
+				|| (forFaction == this.getFaction() && this.getRole().isAtLeast(Role.MODERATOR))
+				|| (forFaction.isSafeZone() && Permission.MANAGE_SAFE_ZONE.has(getPlayer()))
+				|| (forFaction.isWarZone() && Permission.MANAGE_WAR_ZONE.has(getPlayer()))
+				)
 		{
 			return true;
 		}
@@ -680,7 +753,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		Faction myFaction = getFaction();
 		Faction currentFaction = Board.getFactionAt(flocation);
 		int ownedLand = forFaction.getLandRounded();
-		
+
 		if (Conf.worldGuardChecking && Worldguard.checkForRegionsInChunk(location))
 		{
 			// Checks for WorldGuard regions in the chunk attempting to be claimed
@@ -740,12 +813,12 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		}
 		else if
 		(
-			Conf.claimsMustBeConnected
-			&& ! this.isAdminBypassing()
-			&& myFaction.getLandRoundedInWorld(flocation.getWorldName()) > 0
-			&& !Board.isConnectedLocation(flocation, myFaction)
-			&& (!Conf.claimsCanBeUnconnectedIfOwnedByOtherFaction || !currentFaction.isNormal())
-		)
+				Conf.claimsMustBeConnected
+				&& ! this.isAdminBypassing()
+				&& myFaction.getLandRoundedInWorld(flocation.getWorldName()) > 0
+				&& !Board.isConnectedLocation(flocation, myFaction)
+				&& (!Conf.claimsCanBeUnconnectedIfOwnedByOtherFaction || !currentFaction.isNormal())
+				)
 		{
 			if (Conf.claimsCanBeUnconnectedIfOwnedByOtherFaction)
 				error = P.p.txt.parse("<b>You can only claim additional land which is connected to your first claim or controlled by another faction!");
@@ -764,7 +837,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 			}
 			else if ( ! currentFaction.hasLandInflation())
 			{
-				 // TODO more messages WARN current faction most importantly
+				// TODO more messages WARN current faction most importantly
 				error = P.p.txt.parse("%s<i> owns this land and is strong enough to keep it.", currentFaction.getTag(this));
 			}
 			else if ( ! Board.isBorderLocation(flocation))
@@ -772,24 +845,24 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 				error = P.p.txt.parse("<b>You must start claiming land at the border of the territory.");
 			}
 		}
-		
+
 		if (notifyFailure && error != null)
 		{
 			msg(error);
 		}
 		return error == null;
 	}
-	
+
 	public boolean attemptClaim(Faction forFaction, Location location, boolean notifyFailure)
 	{
 		// notifyFailure is false if called by auto-claim; no need to notify on every failure for it
 		// return value is false on failure, true on success
-		
+
 		FLocation flocation = new FLocation(location);
 		Faction currentFaction = Board.getFactionAt(flocation);
-		
+
 		int ownedLand = forFaction.getLandRounded();
-		
+
 		if ( ! this.canClaimForFactionAtLocation(forFaction, location, notifyFailure)) return false;
 
 		// if economy is enabled and they're not on the bypass list, make sure they can pay
@@ -822,7 +895,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		{
 			LWCFeatures.clearOtherChests(flocation, this.getFaction());
 		}
-		
+
 		// announce success
 		Set<FPlayer> informTheseFPlayers = new HashSet<FPlayer>();
 		informTheseFPlayers.add(this);
@@ -831,7 +904,7 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		{
 			fp.msg("<h>%s<i> claimed land for <h>%s<i> from <h>%s<i>.", this.describeTo(fp, true), forFaction.describeTo(fp), currentFaction.describeTo(fp));
 		}
-		
+
 		Board.setFactionAt(forFaction, flocation);
 		SpoutFeatures.updateTerritoryDisplayLoc(flocation);
 
@@ -841,20 +914,140 @@ public class FPlayer extends PlayerEntity implements EconomyParticipator
 		return true;
 	}
 	
+	public boolean attemptOwner(FLocation flocation, boolean isSilent) {
+		boolean hasBypass = isAdminBypassing();
+		Faction myFaction = getFaction();
+		
+		if ( !hasBypass && ! hasFaction()) {
+			if (!isSilent) sendMessage("Herhangi bir klanın üyesi değilsiniz.");
+			
+			return false;
+		}
+
+		if (!Conf.ownedAreasEnabled)
+		{
+			if (!isSilent) msg("<b>Sorry, but owned areas are disabled on this server.");
+			return false;
+		}
+		
+		if (!hasBypass)
+		{
+			Role role = Conf.ownedAreasModeratorsCanSet ? Role.MODERATOR : Role.ADMIN;
+			if (getRole().value < role.value)
+			{
+				if (!isSilent) msg("<b>Bu alana owner atabilmek için <h>"+role+"<b> olmalısınız.");
+				return false;
+			}
+		}
+		
+		if ( ! hasBypass && Conf.ownedAreasLimitPerFaction > 0 && myFaction.getCountOfClaimsWithOwners() >= Conf.ownedAreasLimitPerFaction)
+		{
+			if (!isSilent) msg("<b>Owner atma limitini aştınız. Maksimum owner atma limiti: <h%d", Conf.ownedAreasLimitPerFaction);
+			return false;
+		}
+
+		Faction factionHere = Board.getFactionAt(flocation);
+		if (factionHere != myFaction)
+		{
+			if ( ! hasBypass)
+			{
+				if (!isSilent) msg("<b>Bu alana owner atamazsınız!");
+				return false;
+			}
+
+			if ( ! factionHere.isNormal())
+			{
+				if (!isSilent) msg("<b>Bu alana owner atamazsınız!");
+				return false;
+			}
+		}
+
+		// if no player name was passed, and this claim does already have owners set, clear them
+		if (myFaction.doesLocationHaveOwnersSet(flocation))
+		{
+			if (!isSilent) msg("<i>Bu alana zaten owner atılmış.");
+			return false;
+		}
+
+		/*ECONOMY WON'T WORK FOR THAT*/
+		/*// if economy is enabled, they're not on the bypass list, and this command has a cost set, make 'em pay
+		if ( ! payForCommand(Conf.econCostOwner, "to set ownership of claimed land", "for setting ownership of claimed land")) return;*/
+
+		myFaction.setPlayerAsOwner(this.getName(), flocation);
+		SpoutFeatures.updateOwnerListLoc(flocation);
+
+		if (!isSilent) msg("<i>Claime başarıyla owner attınız! Artık sizden başka birisi burada inşa yapamaz.");
+		return true;
+	}
+	
+	public boolean attemptUnOwner(FLocation flocation, boolean isSilent) {
+		boolean hasBypass = isAdminBypassing();
+		Faction myFaction = getFaction();
+		
+		if ( !hasBypass && ! hasFaction()) {
+			if (!isSilent) sendMessage("Herhangi bir klanın üyesi değilsiniz.");
+			return false;
+		}
+
+		if (!Conf.ownedAreasEnabled)
+		{
+			if (!isSilent) msg("<b>Sorry, but owned areas are disabled on this server.");
+			return false;
+		}
+		
+		if (!hasBypass)
+		{
+			Role role = Conf.ownedAreasModeratorsCanSet ? Role.MODERATOR : Role.ADMIN;
+			if (getRole().value < role.value)
+			{
+				if (!isSilent) msg("<b>Bu alana owner atabilmek ya da kaldırabilmek için <h>"+role+"<b> olmalısınız.");
+				return false;
+			}
+		}
+
+		Faction factionHere = Board.getFactionAt(flocation);
+		if (factionHere != myFaction)
+		{
+			if ( ! hasBypass)
+			{
+				if (!isSilent) msg("<b>Bu alana owner atamaz ya da silemezsiniz!");
+				return false;
+			}
+
+			if ( ! factionHere.isNormal())
+			{
+				if (!isSilent) msg("<b>Bu alana owner atamaz ya da silemezsiniz!");
+				return false;
+			}
+		}
+
+		// if no player name was passed, and this claim does already have owners set, clear them
+		if (myFaction.doesLocationHaveOwnersSet(flocation))
+		{
+			myFaction.clearClaimOwnership(flocation);
+			SpoutFeatures.updateOwnerListLoc(flocation);
+			if (!isSilent) msg("<i>Alanın ownerını başarıyla kaldırdınız.");
+			return true;
+		}
+
+		if (!isSilent) msg("Bu alana zaten owner atılmamış!");
+		return false;
+	}
+
 	// -------------------------------------------- //
 	// Persistance
 	// -------------------------------------------- //
-	
+
 	@Override
 	public boolean shouldBeSaved()
 	{
 		if (!this.hasFaction() &&
-			(this.getPowerRounded() == this.getPowerMaxRounded() || this.getPowerRounded() == (int) Math.round(Conf.powerPlayerStarting))
-			)
+				(this.getPowerRounded() == this.getPowerMaxRounded() || this.getPowerRounded() == (int) Math.round(Conf.powerPlayerStarting))
+				)
 			return false;
 		return ! this.deleteMe;
 	}
-	
+
 	public void msg(String str, Object... args)
 	{
 		this.sendMessage(P.p.txt.parse(str, args));

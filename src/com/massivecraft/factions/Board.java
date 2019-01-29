@@ -1,16 +1,25 @@
 package com.massivecraft.factions;
 
-import java.io.*;
+import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.libs.com.google.gson.reflect.TypeToken;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+
+import com.google.gson.reflect.TypeToken;
 import com.massivecraft.factions.integration.LWCFeatures;
 import com.massivecraft.factions.struct.Relation;
 import com.massivecraft.factions.util.AsciiCompass;
@@ -73,6 +82,40 @@ public class Board
 		}
 	}
 	
+	public static void ownerAll(FPlayer fme, String factionId)
+	{
+		Faction faction = Factions.i.get(factionId);
+		if (faction != null && faction.isNormal())
+		{
+			Iterator<Entry<FLocation, String>> iter = flocationIds.entrySet().iterator();
+			while (iter.hasNext())
+			{
+				Entry<FLocation, String> entry = iter.next();
+				if (entry.getValue().equals(factionId))
+				{
+					fme.attemptOwner(entry.getKey(), true);
+				}
+			}
+		}
+	}
+	
+	public static void unOwnerAll(FPlayer fme, String factionId)
+	{
+		Faction faction = Factions.i.get(factionId);
+		if (faction != null && faction.isNormal())
+		{
+			Iterator<Entry<FLocation, String>> iter = flocationIds.entrySet().iterator();
+			while (iter.hasNext())
+			{
+				Entry<FLocation, String> entry = iter.next();
+				if (entry.getValue().equals(factionId))
+				{
+					fme.attemptUnOwner(entry.getKey(), true);
+				}
+			}
+		}
+	}
+	
 	public static void unclaimAll(String factionId)
 	{
 		Faction faction = Factions.i.get(factionId);
@@ -94,6 +137,52 @@ public class Board
 				iter.remove();
 			}
 		}
+	}
+	
+	// Added by UnioDex
+	public static void unclaimRandomClaims(int amount, String factionId) {
+		List<FLocation> claims = new ArrayList<FLocation>();
+		claims.addAll(getKeysByValue(flocationIds, factionId));
+		Collections.shuffle(claims);
+		
+		if (claims.size() <= 0) {
+			return;
+		}
+		
+		if (claims.size() < amount) {
+			unclaimAll(factionId);
+			return;
+		}
+
+		List<String> koordinatlar = new ArrayList<String>();
+		
+		for (int i = 0; i < amount; i++) {
+			String[] chunks = claims.get(i).getCoordString().split(",");
+			Block b = Bukkit.getWorld("world").getChunkAt(Integer.parseInt(chunks[0]), Integer.parseInt(chunks[1])).getBlock(8, 0, 8);
+
+			int X = b.getX();
+			int Y = b.getY();
+			int Z = b.getZ();
+			
+			koordinatlar.add(X + ", " + Bukkit.getWorld("world").getHighestBlockYAt(new Location(Bukkit.getWorld("world"), X, Y, Z)) + ", " + Z);
+			flocationIds.remove(claims.get(i));
+		}
+		
+		Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', "&b&lUNIOCRAFT &2-> &aAşağıdaki koordinatlardaki claimler salındı! Hemen yakala!"));
+		for (String koordinat : koordinatlar) {
+			Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', "&4&l➸ &c" + koordinat));	
+		}
+	}
+	
+	// Added by UnioDex
+	public static <T, E> Set<T> getKeysByValue(Map<T, E> map, E value) {
+	    Set<T> keys = new HashSet<T>();
+	    for (Entry<T, E> entry : map.entrySet()) {
+	        if (Objects.equals(value, entry.getValue())) {
+	            keys.add(entry.getKey());
+	        }
+	    }
+	    return keys;
 	}
 
 	// Is this coord NOT completely surrounded by coords claimed by the same faction?

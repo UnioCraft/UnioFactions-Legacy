@@ -3,13 +3,13 @@ package com.massivecraft.factions.cmd;
 import java.util.Collection;
 
 import com.massivecraft.factions.Conf;
-import com.massivecraft.factions.integration.Econ;
 import com.massivecraft.factions.FPlayer;
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
+import com.massivecraft.factions.integration.Econ;
 import com.massivecraft.factions.struct.Permission;
-import com.massivecraft.factions.struct.Role;
 import com.massivecraft.factions.struct.Relation;
+import com.massivecraft.factions.struct.Role;
 
 public class CmdShow extends FCommand
 {
@@ -49,7 +49,7 @@ public class CmdShow extends FCommand
 		Collection<FPlayer> normals = faction.getFPlayersWhereRole(Role.NORMAL);
 		
 		msg(p.txt.titleize(faction.getTag(fme)));
-		msg("<a>Description: <i>%s", faction.getDescription());
+		msg("<a>Açıklama: <i>%s", faction.getDescription());
 		if ( ! faction.isNormal())
 		{
 			return;
@@ -61,11 +61,11 @@ public class CmdShow extends FCommand
 			peaceStatus = "     "+Conf.colorNeutral+"This faction is Peaceful";
 		}
 		
-		msg("<a>Joining: <i>"+(faction.getOpen() ? "no invitation is needed" : "invitation is required")+peaceStatus);
+		msg("<a>Katılım: <i>"+(faction.getOpen() ? "davetiye gerekli değil" : "davetiye gerekli")+peaceStatus);
 
 		double powerBoost = faction.getPowerBoost();
 		String boost = (powerBoost == 0.0) ? "" : (powerBoost > 0.0 ? " (bonus: " : " (penalty: ") + powerBoost + ")";
-		msg("<a>Land / Power / Maxpower: <i> %d/%d/%d %s", faction.getLandRounded(), faction.getPowerRounded(), faction.getPowerMaxRounded(), boost);
+		msg("<a>Arazi Sayısı / Power / Maksimum Power: <i> %d/%d/%d %s", faction.getLandRounded(), faction.getPowerRounded(), faction.getPowerMaxRounded(), boost);
 
 		if (faction.isPermanent())
 		{
@@ -81,19 +81,22 @@ public class CmdShow extends FCommand
 			{
 				String stringValue = Econ.moneyString(value);
 				String stringRefund = (refund > 0.0) ? (" ("+Econ.moneyString(refund)+" depreciated)") : "";
-				msg("<a>Total land value: <i>" + stringValue + stringRefund);
+				msg("<a>Toplam Arazi Fiyatı: <i>" + stringValue + stringRefund);
 			}
 			
 			//Show bank contents
-			if(Conf.bankEnabled) {
-				msg("<a>Bank contains: <i>"+Econ.moneyString(Econ.getBalance(faction.getAccountId())));
-			}
+			//if(Conf.bankEnabled) {
+				//msg("<a>Bank contains: <i>"+Econ.moneyString(Econ.getBalance(faction.getAccountId())));
+			//}
+			sendMessage("§6Klan Parası: §eGörmek için §c/bal faction_"+faction.getId()+ " §ekomutunu kullanın.");
+			sendMessage("§cBazı teknik sorunlardan dolayı fiyat buradan kaldırıldı.");
+				
 		}
 
 		String listpart;
 		
 		// List relation
-		String allyList = p.txt.parse("<a>Allies: ");
+		String allyList = p.txt.parse("<a>Dost Klanlar: ");
 		String enemyList = p.txt.parse("<a>Enemies: ");
 		for (Faction otherFaction : Factions.i.get())
 		{
@@ -114,11 +117,10 @@ public class CmdShow extends FCommand
 			enemyList = enemyList.substring(0, enemyList.length()-2);
 		
 		sendMessage(allyList);
-		sendMessage(enemyList);
 		
 		// List the members...
-		String onlineList = p.txt.parse("<a>")+"Members online: ";
-		String offlineList = p.txt.parse("<a>")+"Members offline: ";
+		String onlineList = p.txt.parse("<a>")+"Çevrimiçi Üyeler: ";
+		String offlineList = p.txt.parse("<a>")+"Çevrimdışı Üyeler: ";
 		for (FPlayer follower : admins)
 		{
 			listpart = follower.getNameAndTitle(fme)+p.txt.parse("<i>")+", ";

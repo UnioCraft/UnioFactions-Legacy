@@ -5,9 +5,9 @@ import java.util.HashSet;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Creature;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Entity;
-
+import org.bukkit.entity.EntityType;
+@SuppressWarnings("deprecation")
 public class MiscUtil
 {	
 	public static EntityType creatureTypeFromEntity(Entity entity)

@@ -27,6 +27,7 @@ import org.bukkit.entity.Player;
  *  Author: Spathizilla
  */
 
+@SuppressWarnings("deprecation")
 public class Worldguard
 {
 	private static WorldGuardPlugin wg;

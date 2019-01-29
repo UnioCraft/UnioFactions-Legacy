@@ -2,7 +2,7 @@ name: Factions
 version: 1.6.9.5
 main: com.massivecraft.factions.P
 authors: [Olof Larsson, Brett Flannigan]
-softdepend: [PermissionsEx, Permissions, Essentials, EssentialsChat, HeroChat, iChat, LocalAreaChat, LWC, nChat, ChatManager, CAPI, AuthMe, Vault, Spout, WorldEdit, WorldGuard, AuthDB, CaptureThePoints, CombatTag]
+softdepend: [MVdWPlaceholderAPI, FeatherBoard, LockettePro, PermissionsEx, Permissions, Essentials, EssentialsChat, HeroChat, iChat, LocalAreaChat, LWC, nChat, ChatManager, CAPI, AuthMe, Vault, Spout, WorldEdit, WorldGuard, AuthDB, CaptureThePoints, CombatTag]
 commands:
   factions:
     description: Reference command for Factions.
@@ -56,6 +56,8 @@ permissions:
     children:
       factions.admin: true
       factions.autoclaim: true
+      factions.autounclaim: true
+      factions.autoowner: true
       factions.chat: true
       factions.claim: true
       factions.claim.radius: true
@@ -92,6 +94,10 @@ permissions:
     description: give or revoke admin status for any player in any faction
   factions.autoclaim:
     description: auto-claim land as you walk around
+  factions.autounclaim:
+    description: auto-unclaim land as you walk around
+  factions.autoowner:
+    description: auto-owner land as you walk around
   factions.bypass:
     description: enable admin bypass mode
   factions.chat:

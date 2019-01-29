@@ -8,6 +8,11 @@ public class FCmdRoot extends FCommand
 {
 	public CmdAdmin cmdAdmin = new CmdAdmin();
 	public CmdAutoClaim cmdAutoClaim = new CmdAutoClaim();
+	public CmdAutoUnclaim cmdAutoUnclaim = new CmdAutoUnclaim();
+	public CmdAutoOwner cmdAutoOwner = new CmdAutoOwner();
+	public CmdAutoUnOwner cmdAutoUnOwner = new CmdAutoUnOwner();
+	public CmdOwnerAll cmdOwnerAll = new CmdOwnerAll();
+	public CmdUnOwnerAll cmdUnOwnerAll = new CmdUnOwnerAll();
 	public CmdBoom cmdBoom = new CmdBoom();
 	public CmdBypass cmdBypass = new CmdBypass();
 	public CmdChat cmdChat = new CmdChat();
@@ -57,7 +62,6 @@ public class FCmdRoot extends FCommand
 		super();
 		this.aliases.addAll(Conf.baseCommandAliases);
 		this.aliases.removeAll(Collections.singletonList(null));  // remove any nulls from extra commas
-		this.allowNoSlashAccess = Conf.allowNoSlashCommand;
 		
 		//this.requiredArgs.add("");
 		//this.optionalArgs.put("","")
@@ -76,6 +80,11 @@ public class FCmdRoot extends FCommand
 		
 		this.addSubCommand(this.cmdAdmin);
 		this.addSubCommand(this.cmdAutoClaim);
+		this.addSubCommand(this.cmdAutoUnclaim);
+		this.addSubCommand(this.cmdAutoOwner);
+		this.addSubCommand(this.cmdAutoUnOwner);
+		this.addSubCommand(this.cmdOwnerAll);
+		this.addSubCommand(this.cmdUnOwnerAll);
 		this.addSubCommand(this.cmdBoom);
 		this.addSubCommand(this.cmdBypass);
 		this.addSubCommand(this.cmdChat);

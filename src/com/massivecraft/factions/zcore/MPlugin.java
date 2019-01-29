@@ -2,25 +2,24 @@ package com.massivecraft.factions.zcore;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bukkit.craftbukkit.libs.com.google.gson.Gson;
-import org.bukkit.craftbukkit.libs.com.google.gson.GsonBuilder;
-import org.bukkit.craftbukkit.libs.com.google.gson.reflect.TypeToken;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.massivecraft.factions.Conf;
 import com.massivecraft.factions.zcore.persist.EM;
 import com.massivecraft.factions.zcore.persist.SaveTask;
 import com.massivecraft.factions.zcore.util.LibLoader;
 import com.massivecraft.factions.zcore.util.PermUtil;
 import com.massivecraft.factions.zcore.util.Persist;
 import com.massivecraft.factions.zcore.util.TextUtil;
-
-import com.massivecraft.factions.Conf;
 
 
 public abstract class MPlugin extends JavaPlugin
@@ -38,15 +37,9 @@ public abstract class MPlugin extends JavaPlugin
 	protected boolean loadSuccessful = false;
 	public boolean getAutoSave() {return this.autoSave;}
 	public void setAutoSave(boolean val) {this.autoSave = val;}
-	public String refCommand = "";
 	
 	// Listeners
-	private MPluginSecretPlayerListener mPluginSecretPlayerListener; 
-	private MPluginSecretServerListener mPluginSecretServerListener;
-	
-	// Our stored base commands
-	private List<MCommand<?>> baseCommands = new ArrayList<MCommand<?>>();
-	public List<MCommand<?>> getBaseCommands() { return this.baseCommands; }
+	public MPluginSecretPlayerListener mPluginSecretPlayerListener; 
 
 	// -------------------------------------------- //
 	// ENABLE
@@ -72,21 +65,8 @@ public abstract class MPlugin extends JavaPlugin
 		this.txt = new TextUtil();
 		initTXT();
 
-		// attempt to get first command defined in plugin.yml as reference command, if any commands are defined in there
-		// reference command will be used to prevent "unknown command" console messages
-		try
-		{
-			Map<String, Map<String, Object>> refCmd = this.getDescription().getCommands();
-			if (refCmd != null && !refCmd.isEmpty())
-				this.refCommand = (String)(refCmd.keySet().toArray()[0]);
-		}
-		catch (ClassCastException ex) {}
-
 		// Create and register listeners
 		this.mPluginSecretPlayerListener = new MPluginSecretPlayerListener(this);
-		this.mPluginSecretServerListener = new MPluginSecretServerListener(this);
-		getServer().getPluginManager().registerEvents(this.mPluginSecretPlayerListener, this);
-		getServer().getPluginManager().registerEvents(this.mPluginSecretServerListener, this);
 		
 		
 		// Register recurring tasks
@@ -174,72 +154,6 @@ public abstract class MPlugin extends JavaPlugin
 		{
 			this.txt.tags.put(rawTag.getKey(), TextUtil.parseColor(rawTag.getValue()));
 		}
-	}
-	
-	// -------------------------------------------- //
-	// COMMAND HANDLING
-	// -------------------------------------------- //
-
-	// can be overridden by P method, to provide option
-	public boolean logPlayerCommands()
-	{
-		return true;
-	}
-
-	public boolean handleCommand(CommandSender sender, String commandString, boolean testOnly)
-	{
-		return handleCommand(sender, commandString, testOnly, false);
-	}
-
-	public boolean handleCommand(final CommandSender sender, String commandString, boolean testOnly, boolean async)
-	{
-		boolean noSlash = true;
-		if (commandString.startsWith("/"))
-		{
-			noSlash = false;
-			commandString = commandString.substring(1);
-		}
-		
-		for (final MCommand<?> command : this.getBaseCommands())
-		{
-			if (noSlash && ! command.allowNoSlashAccess) continue;
-			
-			for (String alias : command.aliases)
-			{
-				// disallow double-space after alias, so specific commands can be prevented (preventing "f home" won't prevent "f  home")
-				if (commandString.startsWith(alias+"  ")) return false;
-
-				if (commandString.startsWith(alias+" ") || commandString.equals(alias))
-				{
-					final List<String> args = new ArrayList<String>(Arrays.asList(commandString.split("\\s+")));
-					args.remove(0);
-
-					if (testOnly) return true;
-
-					if (async)
-					{
-						Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable()
-						{
-							@Override
-							public void run()
-							{
-								command.execute(sender, args);
-							}
-						});
-					}
-					else
-						command.execute(sender, args);
-
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	public boolean handleCommand(CommandSender sender, String commandString)
-	{
-		return this.handleCommand(sender, commandString, false);
 	}
 	
 	// -------------------------------------------- //

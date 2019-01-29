@@ -20,7 +20,7 @@ import com.massivecraft.factions.util.RelationUtil;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 
-
+@SuppressWarnings("deprecation")
 public class Econ
 {
 	private static Economy econ = null;
@@ -49,8 +49,6 @@ public class Econ
 
 		if ( ! Conf.econEnabled)
 			P.p.log("NOTE: Economy is disabled. You can enable it with the command: f config econEnabled true");
-
-		P.p.cmdBase.cmdHelp.updateHelp();
 
 		oldMoneyDoTransfer();
 	}

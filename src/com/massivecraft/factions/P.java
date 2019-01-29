@@ -2,24 +2,29 @@ package com.massivecraft.factions;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.Location;
-import org.bukkit.Material;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.massivecraft.factions.cmd.CmdAutoHelp;
 import com.massivecraft.factions.cmd.FCmdRoot;
 import com.massivecraft.factions.integration.Econ;
 import com.massivecraft.factions.integration.EssentialsFeatures;
 import com.massivecraft.factions.integration.LWCFeatures;
+import com.massivecraft.factions.integration.LocketteProFeatures;
 import com.massivecraft.factions.integration.SpoutFeatures;
 import com.massivecraft.factions.integration.Worldguard;
 import com.massivecraft.factions.integration.capi.CapiFeatures;
@@ -35,11 +40,6 @@ import com.massivecraft.factions.util.LazyLocation;
 import com.massivecraft.factions.util.MapFLocToStringSetTypeAdapter;
 import com.massivecraft.factions.util.MyLocationTypeAdapter;
 import com.massivecraft.factions.zcore.MPlugin;
-import com.massivecraft.factions.zcore.util.TextUtil;
-
-import java.util.logging.Level;
-import org.bukkit.craftbukkit.libs.com.google.gson.GsonBuilder;
-import org.bukkit.craftbukkit.libs.com.google.gson.reflect.TypeToken;
 
 
 public class P extends MPlugin
@@ -80,17 +80,6 @@ public class P extends MPlugin
 	@Override
 	public void onEnable()
 	{
-		// bit of (apparently absolutely necessary) idiot-proofing for CB version support due to changed GSON lib package name
-		try
-		{
-			Class.forName("org.bukkit.craftbukkit.libs.com.google.gson.reflect.TypeToken");
-		}
-		catch (ClassNotFoundException ex)
-		{
-			this.log(Level.SEVERE, "GSON lib not found. Your CraftBukkit build is too old (< 1.3.2) or otherwise not compatible.");
-			this.suicide();
-			return;
-		}
 
 		if ( ! preEnable()) return;
 		this.loadSuccessful = false;
@@ -104,13 +93,17 @@ public class P extends MPlugin
 		// Add Base Commands
 		this.cmdBase = new FCmdRoot();
 		this.cmdAutoHelp = new CmdAutoHelp();
-		this.getBaseCommands().add(cmdBase);
 
 		EssentialsFeatures.setup();
 		SpoutFeatures.setup();
 		Econ.setup();
 		CapiFeatures.setup();
 		LWCFeatures.setup();
+		LocketteProFeatures.setup();
+		
+		if (Bukkit.getPluginManager().isPluginEnabled("MVdWPlaceholderAPI")) {
+			new MVdWPlaceholders();
+		}
 
 		if(Conf.worldGuardChecking || Conf.worldGuardBuildPriority)
 		{
@@ -127,9 +120,6 @@ public class P extends MPlugin
 		getServer().getPluginManager().registerEvents(exploitListener, this);
 		getServer().getPluginManager().registerEvents(blockListener, this);
 		getServer().getPluginManager().registerEvents(serverListener, this);
-
-		// since some other plugins execute commands directly through this command interface, provide it
-		this.getCommand(this.refCommand).setExecutor(this);
 
 		postEnable();
 		this.loadSuccessful = true;
@@ -189,28 +179,10 @@ public class P extends MPlugin
 	}
 
 	@Override
-	public boolean logPlayerCommands()
-	{
-		return Conf.logPlayerCommands;
-	}
-
-	@Override
-	public boolean handleCommand(CommandSender sender, String commandString, boolean testOnly)
-	{
-		if (sender instanceof Player && FactionsPlayerListener.preventCommand(commandString, (Player)sender)) return true;
-
-		return super.handleCommand(sender, commandString, testOnly);
-	}
-
-	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] split)
 	{
-		// if bare command at this point, it has already been handled by MPlugin's command listeners
-		if (split == null || split.length == 0) return true;
-
-		// otherwise, needs to be handled; presumably another plugin directly ran the command
-		String cmd = Conf.baseCommandAliases.isEmpty() ? "/f" : "/" + Conf.baseCommandAliases.get(0);
-		return handleCommand(sender, cmd + " " + TextUtil.implode(Arrays.asList(split), " "), false);
+		this.cmdBase.execute(sender, new ArrayList<String>(Arrays.asList(split)));
+		return true;
 	}
 
 
@@ -252,13 +224,13 @@ public class P extends MPlugin
 	}
 
 	// Is this chat message actually a Factions command, and thus should be left alone by other plugins?
-	
-	// TODO: GET THIS BACK AND WORKING
+	/**
+	 * @deprecated As of release 1.8.1 the normal Bukkit command-handling is used. 
+	 */
 	
 	public boolean isFactionsCommand(String check)
 	{
-		if (check == null || check.isEmpty()) return false;
-		return this.handleCommand(null, check, true);
+		return false;
 	}
 
 	// Get a player's faction tag (faction name), mainly for usage by chat plugins for local/channel chat

@@ -1,11 +1,11 @@
 package com.massivecraft.factions.listeners;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.text.MessageFormat;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -16,12 +16,12 @@ import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.entity.Wither;
 import org.bukkit.entity.WitherSkull;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -40,6 +40,7 @@ import org.bukkit.event.hanging.HangingBreakEvent.RemoveCause;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.projectiles.ProjectileSource;
 
 import com.massivecraft.factions.Board;
 import com.massivecraft.factions.Conf;
@@ -52,7 +53,7 @@ import com.massivecraft.factions.event.PowerLossEvent;
 import com.massivecraft.factions.struct.Relation;
 import com.massivecraft.factions.util.MiscUtil;
 
-
+@SuppressWarnings("deprecation")
 public class FactionsEntityListener implements Listener
 {
 	public P p;
@@ -285,14 +286,14 @@ public class FactionsEntityListener implements Listener
 		}
 		if ( ! badjuju) return;
 
-		Entity thrower = event.getPotion().getShooter();
+		ProjectileSource thrower = event.getPotion().getShooter();
 
 		// scan through affected entities to make sure they're all valid targets
 		Iterator<LivingEntity> iter = event.getAffectedEntities().iterator();
 		while (iter.hasNext())
 		{
 			LivingEntity target = iter.next();
-			EntityDamageByEntityEvent sub = new EntityDamageByEntityEvent(thrower, target, EntityDamageEvent.DamageCause.CUSTOM, 0);
+			EntityDamageByEntityEvent sub = new EntityDamageByEntityEvent((Entity) thrower, target, EntityDamageEvent.DamageCause.CUSTOM, 0);
 			if ( ! this.canDamagerHurtDamagee(sub, true))
 				event.setIntensity(target, 0.0);  // affected entity list doesn't accept modification (so no iter.remove()), but this works
 			sub = null;
@@ -321,7 +322,7 @@ public class FactionsEntityListener implements Listener
 	{
 		Entity damager = sub.getDamager();
 		Entity damagee = sub.getEntity();
-		int damage = sub.getDamage();
+		double damage = sub.getDamage();
 		
 		if ( ! (damagee instanceof Player))
 			return true;
@@ -335,8 +336,15 @@ public class FactionsEntityListener implements Listener
 		Faction defLocFaction = Board.getFactionAt(new FLocation(defenderLoc));
 
 		// for damage caused by projectiles, getDamager() returns the projectile... what we need to know is the source
-		if (damager instanceof Projectile)
-			damager = ((Projectile)damager).getShooter();
+		if (damager instanceof Projectile) {
+            Projectile projectile = (Projectile) damager;
+
+            if (!(projectile.getShooter() instanceof Entity)) {
+                return true;
+            }
+
+            damager = (Entity) projectile.getShooter();
+        }
 
 		if (damager == damagee)  // ender pearl usage and other self-inflicted damage
 			return true;

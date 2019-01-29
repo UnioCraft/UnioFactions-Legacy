@@ -68,7 +68,7 @@ public class CmdHelp extends FCommand
 		pageLines.add( p.cmdBase.cmdJoin.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdLeave.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdChat.getUseageTemplate(true) );
-		pageLines.add( p.cmdBase.cmdHome.getUseageTemplate(true) );
+		pageLines.add( p.txt.parse("§b/f home §eteleport to the faction home") );
 		pageLines.add( p.txt.parse("<i>Learn how to create a faction on the next page.") );
 		helpPages.add(pageLines);
 		
@@ -101,17 +101,19 @@ public class CmdHelp extends FCommand
 		
 		pageLines = new ArrayList<String>();
 		pageLines.add( p.cmdBase.cmdClaim.getUseageTemplate(true) );
-		pageLines.add( p.cmdBase.cmdAutoClaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdUnclaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdUnclaimall.getUseageTemplate(true) );
+		pageLines.add( p.cmdBase.cmdAutoClaim.getUseageTemplate(true) );
+		pageLines.add( p.cmdBase.cmdAutoUnclaim.getUseageTemplate(true) );
+		pageLines.add( p.cmdBase.cmdAutoOwner.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdKick.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdMod.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdAdmin.getUseageTemplate(true) );
-		pageLines.add( p.cmdBase.cmdTitle.getUseageTemplate(true) );
-		pageLines.add( p.txt.parse("<i>Player titles are just for fun. No rules connected to them." ));
 		helpPages.add(pageLines);
 		
 		pageLines = new ArrayList<String>();
+		pageLines.add( p.cmdBase.cmdTitle.getUseageTemplate(true) );
+		pageLines.add( p.txt.parse("<i>Player titles are just for fun. No rules connected to them." ));
 		pageLines.add( p.cmdBase.cmdMap.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdBoom.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdOwner.getUseageTemplate(true) );

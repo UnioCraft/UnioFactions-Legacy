@@ -1,15 +1,23 @@
 package com.massivecraft.factions.listeners;
 
+import java.util.Iterator;
+import java.util.List;
+
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 
@@ -24,7 +32,7 @@ import com.massivecraft.factions.integration.Worldguard;
 import com.massivecraft.factions.struct.Permission;
 import com.massivecraft.factions.struct.Relation;
 
-
+@SuppressWarnings("deprecation")
 public class FactionsBlockListener implements Listener
 {
 	public P p;
@@ -32,20 +40,20 @@ public class FactionsBlockListener implements Listener
 	{
 		this.p = p;
 	}
-	
+
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onBlockPlace(BlockPlaceEvent event)
 	{
 		if (event.isCancelled()) return;
 		if ( ! event.canBuild()) return;
-		
+
 		// special case for flint&steel, which should only be prevented by DenyUsage list
 		if (event.getBlockPlaced().getType() == Material.FIRE)
 		{
 			return;
 		}
 
-		if ( ! playerCanBuildDestroyBlock(event.getPlayer(), event.getBlock().getLocation(), "build", false))
+		if ( ! playerCanBuildDestroyBlock(event.getPlayer(), event.getBlockPlaced().getLocation(), "build", false))
 			event.setCancelled(true);
 	}
 
@@ -104,21 +112,24 @@ public class FactionsBlockListener implements Listener
 		{
 			return;
 		}
+		
+		List<Block> bloklar = event.getBlocks();
 
-		Location targetLoc = event.getRetractLocation();
+		for (Iterator<Block> i = bloklar.iterator(); i.hasNext();) {
+			Block block = i.next();
+			Faction pistonFaction = Board.getFactionAt(new FLocation(event.getBlock()));
 
-		// if potentially retracted block is just air/water/lava, no worries
-		if (targetLoc.getBlock().isEmpty() || targetLoc.getBlock().isLiquid())
-		{
-			return;
-		}
-
-		Faction pistonFaction = Board.getFactionAt(new FLocation(event.getBlock()));
-
-		if (!canPistonMoveBlock(pistonFaction, targetLoc))
-		{
-			event.setCancelled(true);
-			return;
+			// if potentially retracted block is just air/water/lava, no worries
+			if (block.isEmpty() || block.isLiquid())
+			{
+				//nothing.
+			}else {
+				if (!canPistonMoveBlock(pistonFaction, block.getLocation()))
+				{
+					event.setCancelled(true);
+					return;
+				}
+			}
 		}
 	}
 
@@ -233,7 +244,7 @@ public class FactionsBlockListener implements Listener
 				me.msg("<b>You can't "+action+" in the territory of "+otherFaction.getTag(myFaction));
 
 			return false;
- 		}
+		}
 
 		// Also cancel and/or cause pain if player doesn't have ownership rights for this claim
 		if (Conf.ownedAreasEnabled && (Conf.ownedAreaDenyBuild || Conf.ownedAreaPainBuild) && !otherFaction.playerHasOwnershipRights(me, loc))
@@ -255,5 +266,58 @@ public class FactionsBlockListener implements Listener
 		}
 
 		return true;
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+	public void buildMove(BlockFromToEvent event)
+	{	
+		if (event.isCancelled()) return;
+
+		Faction fac1 = Board.getFactionAt(new FLocation(event.getBlock()));
+		Faction fac2 = Board.getFactionAt(new FLocation(event.getToBlock()));
+
+		if (fac1 != fac2)
+		{
+			event.setCancelled(true);
+			return;
+		}
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+	public void onDispense(BlockDispenseEvent event){
+
+		if (event.isCancelled()) return;
+
+		if (Conf.worldsNoClaiming.contains(event.getBlock().getWorld().getName())) return;
+
+		if ((event.getItem().getType() == Material.LAVA_BUCKET) || (event.getItem().getType() == Material.WATER_BUCKET)) {
+
+			Faction fac1 = Board.getFactionAt(new FLocation(event.getBlock()));
+			Faction fac2 = Board.getFactionAt(new FLocation(Bukkit.getWorld("world").getBlockAt(event.getVelocity().getBlockX(), event.getVelocity().getBlockY(), event.getVelocity().getBlockZ())));
+
+			if (fac1 != fac2)
+			{
+				event.setCancelled(true);
+				return;
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+	public void structureGrowEvent(StructureGrowEvent event){
+		if (event.isCancelled()) return;
+
+		List<BlockState> bloklar = event.getBlocks();
+
+		for (Iterator<BlockState> i = bloklar.iterator(); i.hasNext();) {
+			BlockState block = i.next();
+			Faction fac1 = Board.getFactionAt(new FLocation(event.getLocation().getBlock()));
+			Faction fac2 = Board.getFactionAt(new FLocation(block.getBlock()));
+			if (fac1 != fac2)
+			{
+				event.setCancelled(true);
+				break;
+			}
+		}
 	}
 }

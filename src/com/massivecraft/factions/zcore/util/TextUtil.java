@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-
+@SuppressWarnings("deprecation")
 public class TextUtil
 {
 	public Map<String, String> tags;

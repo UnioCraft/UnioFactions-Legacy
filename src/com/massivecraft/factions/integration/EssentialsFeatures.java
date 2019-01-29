@@ -121,7 +121,6 @@ public class EssentialsFeatures
 
 	private static class LocalChatListener implements Listener
 	{
-		@SuppressWarnings("unused")
 		@EventHandler(priority = EventPriority.NORMAL)
 		public void onPlayerChat(EssentialsLocalChatEvent event)
 		{

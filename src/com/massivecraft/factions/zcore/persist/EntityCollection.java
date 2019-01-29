@@ -2,12 +2,15 @@ package com.massivecraft.factions.zcore.persist;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.util.*;
-import java.util.logging.Level;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.libs.com.google.gson.Gson;
+
+import com.google.gson.Gson;
 import com.massivecraft.factions.zcore.util.DiscUtil;
 import com.massivecraft.factions.zcore.util.TextUtil;
 

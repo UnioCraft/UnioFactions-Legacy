@@ -20,6 +20,7 @@ import com.massivecraft.factions.struct.ChatMode;
 import com.massivecraft.factions.struct.Relation;
 
 
+@SuppressWarnings("deprecation")
 public class FactionsChatListener implements Listener
 {
 	public P p;
@@ -38,15 +39,6 @@ public class FactionsChatListener implements Listener
 		String msg = event.getMessage();
 		FPlayer me = FPlayers.i.get(talkingPlayer);
 		ChatMode chat = me.getChatMode();
-
-		// slashless factions commands need to be handled here if the user isn't in public chat mode
-		if (chat != ChatMode.PUBLIC && p.handleCommand(talkingPlayer, msg, false, true))
-		{
-			if (Conf.logPlayerCommands)
-				Bukkit.getLogger().log(Level.INFO, "[PLAYER_COMMAND] "+talkingPlayer.getName()+": "+msg);
-			event.setCancelled(true);
-			return;
-		}
 
 		// Is it a faction chat message?
 		if (chat == ChatMode.FACTION)

@@ -12,6 +12,7 @@ public enum Permission
 	ADMIN("admin"),
 	ADMIN_ANY("admin.any"),
 	AUTOCLAIM("autoclaim"),
+	AUTOUNCLAIM("autounclaim"),
 	BYPASS("bypass"),
 	CHAT("chat"),
 	CHATSPY("chatspy"),

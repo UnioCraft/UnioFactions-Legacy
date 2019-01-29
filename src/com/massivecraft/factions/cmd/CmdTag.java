@@ -1,6 +1,8 @@
 package com.massivecraft.factions.cmd;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 
 import org.bukkit.Bukkit;
 
@@ -14,35 +16,42 @@ import com.massivecraft.factions.util.MiscUtil;
 
 public class CmdTag extends FCommand
 {
-	
+	HashMap<Faction, Integer> cooldowns = new HashMap<Faction, Integer>();
 	public CmdTag()
 	{
 		this.aliases.add("tag");
-		
+
 		this.requiredArgs.add("faction tag");
 		//this.optionalArgs.put("", "");
-		
+
 		this.permission = Permission.TAG.node;
 		this.disableOnLock = true;
-		
+
 		senderMustBePlayer = true;
 		senderMustBeMember = false;
 		senderMustBeModerator = true;
 		senderMustBeAdmin = false;
 	}
-	
+
 	@Override
 	public void perform()
 	{
 		String tag = this.argAsString(0);
-		
+		if (!fme.isAdminBypassing())
+		{
+			if (cooldowns.containsKey(myFaction) && ((int) (new Date().getTime()/1000) - cooldowns.get(myFaction) < 60)) {
+				sender.sendMessage("§2[§bUnioCraft§2] §cKlan adını değiştirmeden önce 1 dakika beklemelisiniz!");
+				return;
+			}	
+		}
+
 		// TODO does not first test cover selfcase?
 		if (Factions.i.isTagTaken(tag) && ! MiscUtil.getComparisonString(tag).equals(myFaction.getComparisonTag()))
 		{
 			msg("<b>That tag is already taken");
 			return;
 		}
-		
+
 		ArrayList<String> errors = new ArrayList<String>();
 		errors.addAll(Factions.validateTag(tag));
 		if (errors.size() > 0)
@@ -64,7 +73,12 @@ public class CmdTag extends FCommand
 
 		String oldtag = myFaction.getTag();
 		myFaction.setTag(tag);
-		
+		if (!fme.isAdminBypassing())
+		{
+			int i = (int) (new Date().getTime()/1000);
+			cooldowns.put(myFaction, i);
+		}
+
 		// Inform
 		myFaction.msg("%s<i> changed your faction tag to %s", fme.describeTo(myFaction, true), myFaction.getTag(myFaction));
 		for (Faction faction : Factions.i.get())
@@ -81,5 +95,5 @@ public class CmdTag extends FCommand
 			SpoutFeatures.updateAppearances(myFaction);
 		}
 	}
-	
+
 }
