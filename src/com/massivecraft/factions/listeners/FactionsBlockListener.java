@@ -309,8 +309,7 @@ public class FactionsBlockListener implements Listener
 
 		List<BlockState> bloklar = event.getBlocks();
 
-		for (Iterator<BlockState> i = bloklar.iterator(); i.hasNext();) {
-			BlockState block = i.next();
+		for (BlockState block : bloklar) {
 			Faction fac1 = Board.getFactionAt(new FLocation(event.getLocation().getBlock()));
 			Faction fac2 = Board.getFactionAt(new FLocation(block.getBlock()));
 			if (fac1 != fac2)

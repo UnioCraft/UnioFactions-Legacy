@@ -103,6 +103,7 @@ public class CmdHelp extends FCommand
 		pageLines.add( p.cmdBase.cmdClaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdUnclaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdUnclaimall.getUseageTemplate(true) );
+		pageLines.add( p.cmdBase.cmdClear.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdAutoClaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdAutoUnclaim.getUseageTemplate(true) );
 		pageLines.add( p.cmdBase.cmdAutoOwner.getUseageTemplate(true) );

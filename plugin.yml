@@ -2,7 +2,7 @@ name: Factions
 version: 1.6.9.5
 main: com.massivecraft.factions.P
 authors: [Olof Larsson, Brett Flannigan]
-softdepend: [MVdWPlaceholderAPI, FeatherBoard, LockettePro, PermissionsEx, Permissions, Essentials, EssentialsChat, HeroChat, iChat, LocalAreaChat, LWC, nChat, ChatManager, CAPI, AuthMe, Vault, Spout, WorldEdit, WorldGuard, AuthDB, CaptureThePoints, CombatTag]
+softdepend: [MVdWPlaceholderAPI, FeatherBoard, LockettePro, PermissionsEx, Permissions, Essentials, EssentialsChat, HeroChat, iChat, LocalAreaChat, LWC, nChat, ChatManager, CAPI, AuthMe, Vault, Spout, WorldEdit, WorldGuard, AuthDB, CaptureThePoints, CombatTag, ChunkBuster]
 commands:
   factions:
     description: Reference command for Factions.
@@ -61,6 +61,8 @@ permissions:
       factions.chat: true
       factions.claim: true
       factions.claim.radius: true
+      factions.claimlist: true
+      factions.clear: true
       factions.deinvite: true
       factions.description: true
       factions.disband: true
@@ -108,6 +110,10 @@ permissions:
     description: claim land where you are standing
   factions.claim.radius:
     description: claim land in a large radius
+  factions.claimlist:
+    description: klanınızın claim attığı yerleri gösterir
+  factions.clear:
+    description: bulunduğunuz claimdeki tüm blokları temizler
   factions.config:
     description: change a conf.json setting
   factions.create:

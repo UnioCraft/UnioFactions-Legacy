@@ -34,6 +34,10 @@ public class Board
 	//----------------------------------------------//
 	// Get and Set
 	//----------------------------------------------//
+	public static HashMap<FLocation, String> getFlocations() {
+		return flocationIds;
+	}
+	
 	public static String getIdAt(FLocation flocation)
 	{
 		if ( ! flocationIds.containsKey(flocation))
